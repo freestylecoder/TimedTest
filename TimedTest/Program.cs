@@ -9,7 +9,7 @@ namespace TimedTest {
 	class Program {
 		static IEnumerable<(int top, int bottom)> GetPossibleValues() {
 			foreach( int top in Enumerable.Range( 0, 10 ) )
-				foreach( int bottom in Enumerable.Range( 0, 10 ) )
+				foreach( int bottom in Enumerable.Range( 0, top + 1 ) )
 					yield return (top, bottom);
 		}
 
@@ -24,11 +24,11 @@ namespace TimedTest {
 				possibleValues = possibleValues.Except( new[] { possibleValues.ElementAt( index ) } );
 			}
 
+			int rows = 7;
+			int columns = 8;
 			StringBuilder output = new StringBuilder();
-			int columns = 10;
-			for( int row = 0; row < 10; ++row ) {
-				output.AppendLine();
 
+			for( int row = 0; row < rows; ++row ) {
 				// write line 1
 				output.AppendLine(
 					string.Join(
@@ -36,8 +36,8 @@ namespace TimedTest {
 						chosenValues
 							.Skip( columns * row )
 							.Take( columns )
-							.Select( t => $"    {t.top}  " )
-					)
+							.Select( t => $"    {t.top}     " )
+					).TrimEnd()
 				);
 
 				// write line 2
@@ -47,16 +47,26 @@ namespace TimedTest {
 						chosenValues
 							.Skip( columns * row )
 							.Take( columns )
-							.Select( t => $"   +{t.bottom}  " )
-					)
+							.Select( t => $"   +{t.bottom}     " )
+					).TrimEnd()
 				);
 
-				output.AppendLine( string.Join( "", Enumerable.Range( 0, columns ).Select( _ => "  ____ " ) ) );
+				output.AppendLine(
+					string.Join(
+						"",
+						chosenValues
+							.Skip( columns * row )
+							.Take( columns )
+							.Select( _ => "  ____    " )
+					).TrimEnd()
+				);
+				output.AppendLine();
+				output.AppendLine();
 				output.AppendLine();
 				output.AppendLine();
 			}
 
-			File.WriteAllText( "C:\\dev\\TimedTest\\TimedTest\\test.txt", output.ToString() );
+			File.WriteAllText( "C:\\dev\\github.com\\freestylecoder\\TimedTest\\TimedTest\\test.txt", output.ToString().TrimEnd() );
 		}
 	}
 }

@@ -7,26 +7,60 @@ using System.Threading.Tasks;
 
 namespace TimedTest {
 	class Program {
-		static Random random = new Random();
+		static int seed;
 
-		static IEnumerable<(int top, int bottom)> GetPossibleValues() {
-			foreach( int top in Enumerable.Range( 0, 10 ) )
-				foreach( int bottom in Enumerable.Range( 0, top + 1 ) )
-					if( 0.5 > random.NextDouble() )
-						yield return (top, bottom);
-					else
-						yield return (bottom, top);
+		static IEnumerable<(int top, int bottom)> GetPossibleValues( Random random ) =>
+			Enumerable
+				.Range( 0, 10 )
+				.SelectMany( top =>
+					Enumerable
+						.Range( 0, top + 1 )
+						.Select( bottom =>
+							0.5 > random.NextDouble()
+							? (top, bottom)
+							: (bottom, top)
+						)
+				);
+
+		private static IEnumerable<(int top, int bottom)> GetList( Random random ) {
+			int jump = 0;
+			bool primeish = false;
+			while( !primeish ) {
+				jump = random.Next( 1, 55 );
+				primeish = ( jump % 5 != 0 ) && ( jump % 11 != 0 );
+			}
+
+			return Enumerable
+				.Range( 0, 55 )
+				.Select( i => jump * ++i )
+				.Select( i => i % 55 )
+				.Select( i => GetPossibleValues( random ).Skip( i ).First() );
+		}
+
+		static void ProcessCommandLineArgs( string[] args ) {
+			for( int index = 0; index < args.Length; ++index ) {
+				switch( args[index].ToUpperInvariant() ) {
+					case "-S":
+					case "/S":
+					case "--SEED":
+						if( int.TryParse( args[++index], out seed ) )
+							break;
+						else
+							goto default;
+
+					default:
+						throw new NotSupportedException( $"{args[index]} is not supported." );
+				}
+			}
 		}
 
 		static void Main( string[] args ) {
-			List<(int top, int bottom)> possibleValues = GetPossibleValues().ToList();
-			IEnumerable<(int top, int bottom)> chosenValues = Enumerable.Empty<(int top, int bottom)>();
+			ProcessCommandLineArgs( args );
 
-			while( possibleValues.Any() ) {
-				int index = random.Next( possibleValues.Count() );
-				chosenValues = chosenValues.Append( possibleValues.Skip( index ).First() );
-				possibleValues.RemoveAt( index );
-			}
+			if( 0 == seed ) seed = new Random().Next();
+			Random random = new Random( seed );
+
+			IEnumerable<(int top, int bottom)> possibleValues = GetList( random );
 
 			int rows = 7;
 			int columns = 8;
@@ -37,7 +71,7 @@ namespace TimedTest {
 				output.AppendLine(
 					string.Join(
 						"",
-						chosenValues
+						possibleValues
 							.Skip( columns * row )
 							.Take( columns )
 							.Select( t => $"    {t.top}     " )
@@ -48,7 +82,7 @@ namespace TimedTest {
 				output.AppendLine(
 					string.Join(
 						"",
-						chosenValues
+						possibleValues
 							.Skip( columns * row )
 							.Take( columns )
 							.Select( t => $"   +{t.bottom}     " )
@@ -58,7 +92,7 @@ namespace TimedTest {
 				output.AppendLine(
 					string.Join(
 						"",
-						chosenValues
+						possibleValues
 							.Skip( columns * row )
 							.Take( columns )
 							.Select( _ => "  ____    " )
@@ -70,6 +104,8 @@ namespace TimedTest {
 				output.AppendLine();
 			}
 
+			output.AppendLine();
+			output.Append( seed );
 			File.WriteAllText( "C:\\dev\\github.com\\freestylecoder\\TimedTest\\TimedTest\\test.txt", output.ToString().TrimEnd() );
 		}
 	}
